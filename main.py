@@ -10,15 +10,18 @@ BASE_URL = "https://cfp.2021.djangocon.eu"
 SPEAKER_PATH = "/2021/speaker/"
 
 
-async def grab_twitter(url):
-    twit_links = []
+async def grab_twitter(speakers):
+    twit_handles = set()
     async with httpx.AsyncClient() as client:
-        r = await client.get(f"{BASE_URL}{url}")
-    text = r.text
-    soup = BeautifulSoup(text, features="html.parser")
-    for link in soup("a", href=re.compile("twitter.com")):
-        twit_links.append(urlparse(link["href"]).path[1:])
-    return twit_links
+        responses = await asyncio.gather(
+            *[client.get(BASE_URL + speaker.attrs["href"]) for speaker in speakers]
+        )
+    for r in responses:
+        text = r.text
+        soup = BeautifulSoup(text, features="html.parser")
+        for link in soup("a", href=re.compile("twitter.com")):
+            twit_handles.add(urlparse(link["href"]).path[1:])
+    return twit_handles
 
 
 async def grab_speakers(url):
@@ -27,12 +30,8 @@ async def grab_speakers(url):
     text = r.text
     soup = BeautifulSoup(text, features="html.parser")
     speakers = soup.select("h3.talk-title a")
-    twit_links = await asyncio.gather(
-        *[grab_twitter(speaker.attrs["href"]) for speaker in speakers]
-    )
-    # flatten and de-dup
-    handles = {item for elem in twit_links for item in elem if item}
-    print(",".join(handles))
+    twit_handles = await grab_twitter(speakers)
+    print(",".join(twit_handles))
 
 
 if __name__ == "__main__":
