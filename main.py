@@ -1,4 +1,5 @@
 import re
+import time
 from urllib.parse import urlparse
 
 import requests
@@ -31,4 +32,7 @@ def grab_speakers(url):
 
 
 if __name__ == "__main__":
+    tic = time.perf_counter()
     grab_speakers(f"{BASE_URL}{SPEAKER_PATH}")
+    toc = time.perf_counter()
+    print(f"Downloaded speakers in {toc - tic:0.4f} seconds")
