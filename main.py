@@ -1,3 +1,4 @@
+import asyncio
 import re
 import time
 from urllib.parse import urlparse
@@ -9,9 +10,10 @@ BASE_URL = "https://cfp.2021.djangocon.eu"
 SPEAKER_PATH = "/2021/speaker/"
 
 
-def grab_twitter(url):
+async def grab_twitter(url):
     twit_links = []
-    r = httpx.get(f"{BASE_URL}{url}")
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{BASE_URL}{url}")
     text = r.text
     soup = BeautifulSoup(text, features="html.parser")
     for link in soup("a", href=re.compile("twitter.com")):
@@ -19,20 +21,22 @@ def grab_twitter(url):
     return twit_links
 
 
-def grab_speakers(url):
-    r = httpx.get(url)
+async def grab_speakers(url):
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url)
     text = r.text
     soup = BeautifulSoup(text, features="html.parser")
     speakers = soup.select("h3.talk-title a")
-    twit_links = []
-    for speaker in speakers:
-        if link := grab_twitter(speaker.attrs["href"]):
-            twit_links += link
-    print(",".join(twit_links))
+    twit_links = await asyncio.gather(
+        *[grab_twitter(speaker.attrs["href"]) for speaker in speakers]
+    )
+    # flatten and de-dup
+    handles = {item for elem in twit_links for item in elem if item}
+    print(",".join(handles))
 
 
 if __name__ == "__main__":
     tic = time.perf_counter()
-    grab_speakers(f"{BASE_URL}{SPEAKER_PATH}")
+    asyncio.run(grab_speakers(f"{BASE_URL}{SPEAKER_PATH}"))
     toc = time.perf_counter()
     print(f"Downloaded speakers in {toc - tic:0.4f} seconds")
