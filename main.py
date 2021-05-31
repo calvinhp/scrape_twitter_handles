@@ -2,7 +2,7 @@ import re
 import time
 from urllib.parse import urlparse
 
-import requests
+import httpx
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://cfp.2021.djangocon.eu"
@@ -11,7 +11,7 @@ SPEAKER_PATH = "/2021/speaker/"
 
 def grab_twitter(url):
     twit_links = []
-    r = requests.get(f"{BASE_URL}{url}")
+    r = httpx.get(f"{BASE_URL}{url}")
     text = r.text
     soup = BeautifulSoup(text, features="html.parser")
     for link in soup("a", href=re.compile("twitter.com")):
@@ -20,7 +20,7 @@ def grab_twitter(url):
 
 
 def grab_speakers(url):
-    r = requests.get(url)
+    r = httpx.get(url)
     text = r.text
     soup = BeautifulSoup(text, features="html.parser")
     speakers = soup.select("h3.talk-title a")
