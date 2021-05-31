@@ -8,11 +8,12 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://cfp.2021.djangocon.eu"
 SPEAKER_PATH = "/2021/speaker/"
+USE_HTTP2 = False
 
 
 async def grab_twitter(speakers):
     twit_handles = set()
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(http2=USE_HTTP2) as client:
         responses = await asyncio.gather(
             *[client.get(BASE_URL + speaker.attrs["href"]) for speaker in speakers]
         )
